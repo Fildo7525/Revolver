@@ -1,29 +1,5 @@
 local M = {}
-local saveFile = vim.fn.stdpath("cache") .. "/revolver/"
-
---- Check if a file or directory exists in this path
----
----@param file string File to check
----@return true if the file exists, false/nil otherwise
-local function exists(file)
-	local ok, err, code = os.rename(file, file)
-	if not ok then
-		if code == 13 then
-			-- Permission denied, but it exists
-			return true
-		end
-	end
-	return ok, err
-end
-
---- Check if a directory exists in this path
----
----@param path string Path to check
----@return true if the directory exists, false/nil otherwise
-local function isdir(path)
-	-- "/" works on both Unix and Windows
-	return exists(path.."/")
-end
+local saveDir = vim.fn.stdpath("cache") .. "/revolver/"
 
 local function ignoreLetters( c )
 	return (c:gsub("['/']+", ""))
@@ -41,11 +17,11 @@ end
 ---@param mode string In which the file should be opened.
 ---@return file*? Opened file
 local function createFile(mode)
-	if not isdir(saveFile) then
-		os.execute("mkdir -p " .. saveFile)
+	if not vim.fn.isdirectory(saveDir) then
+		os.execute("mkdir -p " .. saveDir)
 	end
-	vim.notify("Creating file " .. saveFile .. M.project(), vim.log.levels.INFO)
-	return io.open(saveFile .. M.project(), mode)
+	vim.notify("Creating file " .. saveDir .. M.project(), vim.log.levels.INFO)
+	return io.open(saveDir .. M.project(), mode)
 end
 
 --- Writes data to a file only if the file exists.
@@ -53,7 +29,7 @@ end
 ---@param file file*? Where to write.
 ---@param data string What to write.
 local function writeFile(file, data)
-	if file then
+	if file and vim.fn.filewritable(saveDir) then
 		file:write(data .. "\n")
 	else
 		vim.notify("Could not write \"" .. data .. "\" to a file\n", vim.log.levels.ERROR)
@@ -64,10 +40,10 @@ end
 ---
 ---@param file file*? from where to write
 local function readLine(file)
-	if file then
+	if file and vim.fn.filereadable(saveDir) then
 		return file:read("l")
 	else
-		vim.notify("Could not read from the file", vim.log.levels.ERROR)
+		vim.notify("Could not read from the " .. saveDir .. " file", vim.log.levels.ERROR)
 		return nil
 	end
 end
@@ -79,13 +55,11 @@ M.SaveOpenedFiles = function ()
 	local blist = vim.fn.getbufinfo({ buflisted = 1, bufloaded = 1 })
 	local file = createFile("w")
 	if not file then
-		vim.notify("Could not create file " .. saveFile .. M.project(),vim.log.levels.ERROR)
+		vim.notify("Could not create file " .. saveDir .. M.project(),vim.log.levels.ERROR)
 	else
-		vim.notify("File created " .. saveFile .. M.project(), vim.log.levels.INFO)
+		vim.notify("File created " .. saveDir .. M.project(), vim.log.levels.INFO)
 	end
 	local result = {}
-
-	writeFile(file, vim.fn.getcwd())
 
 	for k,item in ipairs(blist) do
 		if item.name then
@@ -103,14 +77,11 @@ end
 ---@param deleteAfterLoad boolean Flag controlling whether the reopener file should be deleted after opening the files.
 ---@return boolean true on success.
 M.OpenSavedFiles = function (deleteAfterLoad)
-	local file = io.open(saveFile .. M.project(), "r")
+	local file = io.open(saveDir .. M.project(), "r")
 	if not file then
-		vim.notify("Could not open file " .. saveFile .. M.project(), vim.log.levels.ERROR)
+		vim.notify("Could not open file " .. saveDir .. M.project(), vim.log.levels.ERROR)
 		return false
 	end
-	-- workspace location. Currently unused
----@diagnostic disable-next-line: unused-local
-	local wd = readLine(file)
 	local files = 0
 	while true do
 		local line = readLine(file)
@@ -122,7 +93,7 @@ M.OpenSavedFiles = function (deleteAfterLoad)
 	end
 	file:close()
 	if deleteAfterLoad then
-		vim.fn.delete(saveFile .. M.project())
+		vim.fn.delete(saveDir .. M.project())
 	end
 	return true
 end
