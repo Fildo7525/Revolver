@@ -17,7 +17,7 @@ end
 ---@param mode string In which the file should be opened.
 ---@return file*? Opened file
 local function createFile(mode)
-	if not vim.fn.isdirectory(saveDir) then
+	if vim.fn.isdirectory(saveDir) then
 		os.execute("mkdir -p " .. saveDir)
 	end
 	vim.notify("Creating file " .. saveDir .. M.project(), vim.log.levels.INFO)
