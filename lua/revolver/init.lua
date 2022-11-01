@@ -2,7 +2,7 @@ local M = {}
 local saveDir = vim.fn.stdpath("cache") .. "/revolver/"
 
 local function ignoreLetters( c )
-	return (c:gsub("['/']+", ""))
+	return (c:gsub("['/:']+", ""))
 end
 
 --- Get the project name
