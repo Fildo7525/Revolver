@@ -57,25 +57,16 @@ end
 function M.OpenSavedFiles(deleteAfterLoad)
 	local file = io.open(saveDir .. M.project(), "r")
 	if not file then
-		error("Could not open file " .. saveDir .. M.project())
 		return false
 	end
 	file:close()
 
 	vim.cmd("source " .. saveDir .. M.project())
-	local bufferNumbers = vim.api.nvim_list_bufs()
-	for _, buffNr in ipairs(bufferNumbers) do
-		if not vim.api.nvim_buf_is_loaded(buffNr) then
-			goto continue
-		end
 
-		local buffer = vim.api.nvim_buf_get_name(buffNr)
-		if not vim.fn.filereadable(buffer) then
-			vim.notify("Could not open file " .. buffer, vim.log.levels.ERROR)
-		end
-
-		::continue::
+	if deleteAfterLoad then
+		os.execute("rm " .. saveDir .. M.project())
 	end
+
 	return true
 end
 
