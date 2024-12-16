@@ -8,7 +8,7 @@ end
 --- Get the project name
 ---
 ---@return string The project name
-M.project = function()
+function M.project()
 	return ignoreLetters(vim.fn.getcwd()) .. ".list"
 end
 
@@ -45,7 +45,7 @@ end
 
 --- Saves opened files to a file. Files are representations of projects.
 -- If two projects have the same name of the last directory. The newer save overwrites the older one.
-M.SaveOpenedFiles = function ()
+function M.SaveOpenedFiles()
 	local blist = vim.fn.getbufinfo({ buflisted = 1, bufloaded = 1 })
 	createFile()
 	vim.cmd("mksession! " .. saveDir .. M.project())
@@ -54,7 +54,7 @@ end
 --- Opens the files from the saved file.
 ---@param deleteAfterLoad boolean Flag controlling whether the reopener file should be deleted after opening the files.
 ---@return boolean true on success.
-M.OpenSavedFiles = function (deleteAfterLoad)
+function M.OpenSavedFiles(deleteAfterLoad)
 	local file = io.open(saveDir .. M.project(), "r")
 	if not file then
 		error("Could not open file " .. saveDir .. M.project())
@@ -63,6 +63,19 @@ M.OpenSavedFiles = function (deleteAfterLoad)
 	file:close()
 
 	vim.cmd("source " .. saveDir .. M.project())
+	local bufferNumbers = vim.api.nvim_list_bufs()
+	for _, buffNr in ipairs(bufferNumbers) do
+		if not vim.api.nvim_buf_is_loaded(buffNr) then
+			goto continue
+		end
+
+		local buffer = vim.api.nvim_buf_get_name(buffNr)
+		if not vim.fn.filereadable(buffer) then
+			vim.notify("Could not open file " .. buffer, vim.log.levels.ERROR)
+		end
+
+		::continue::
+	end
 	return true
 end
 
